@@ -1,9 +1,10 @@
-// Tests for the Spec.md and design rules in mockup/store.js. Run: node --test
+// Tests for the Spec.md rules in mockup/store.js. Run: node --test
 const test = require('node:test');
 const assert = require('node:assert');
 const Store = require('../mockup/store.js');
 
 const H = Store.HOUR;
+const D = 24 * H;
 
 // Fresh data in memory for every test.
 function fresh() {
@@ -16,42 +17,36 @@ function tomorrowAt(hour) { const d = new Date(); return new Date(d.getFullYear(
 // Move the demo clock so "now" is exactly the given time (saved, so a refresh keeps it).
 function setNow(db, ms) { db.clockOffsetMs = ms - Date.now(); Store.save(db); }
 
-test('inventory matches Spec.md, numbers match the design (C-01, M-01, E-1)', () => {
+test('inventory matches Spec.md: 40 car, 10 motorcycle, 3 EV, 10 bicycle, all booked per day', () => {
   const db = fresh();
   const of = (t) => db.spots.filter((s) => s.type === t);
-  assert.deepStrictEqual([of('car').length, of('motorcycle').length, of('ev').length], [40, 10, 3]);
-  assert.deepStrictEqual([of('car')[0].id, of('motorcycle')[0].id, of('ev')[0].id], ['C-01', 'M-01', 'E-1']);
+  assert.deepStrictEqual(['car', 'motorcycle', 'ev', 'bicycle'].map((t) => of(t).length), [40, 10, 3, 10]);
+  assert.deepStrictEqual(['car', 'motorcycle', 'ev', 'bicycle'].map((t) => of(t)[0].id), ['C-01', 'M-01', 'E-1', 'B-01']);
+  assert.ok(Object.values(Store.TYPES).every((t) => t.unit === 'day'));
 });
 
-test('car booking holds the spot for the whole day, free again the next day', () => {
+test('a booking holds the spot for the whole day, free again the next day (EV too)', () => {
   const db = fresh();
-  Store.reserve(db, 'Alex Morgan', 'C-01', tomorrowAt(8));
-  assert.ok(!Store.freeSpots(db, 'car', tomorrowAt(15)).some((s) => s.id === 'C-01'));
-  assert.ok(Store.freeSpots(db, 'car', tomorrowAt(8) + 24 * H).some((s) => s.id === 'C-01'));
+  Store.reserve(db, 'Alex Morgan', 'E-1', tomorrowAt(8));
+  assert.ok(!Store.freeSpots(db, 'ev', tomorrowAt(15)).some((s) => s.id === 'E-1'));
+  assert.ok(Store.freeSpots(db, 'ev', tomorrowAt(8) + D).some((s) => s.id === 'E-1'));
 });
 
 test('all-day bookings start 08:00; booked later the same day, they start now', () => {
   const db = fresh();
   const tomorrow = Store.startOfDay(tomorrowAt(12));
-  assert.strictEqual(Store.startFor(db, 'car', tomorrow), tomorrow + 8 * H);
+  assert.strictEqual(Store.startFor(db, tomorrow), tomorrow + 8 * H);
   setNow(db, tomorrow + 14 * H);
-  assert.strictEqual(Store.startFor(db, 'car', tomorrow), tomorrow + 14 * H);
-  assert.strictEqual(Store.startFor(db, 'ev', tomorrow, 16), tomorrow + 16 * H);
+  assert.strictEqual(Store.startFor(db, tomorrow), tomorrow + 14 * H);
 });
 
-test('day picker offers today and next working days, no weekends', () => {
+test('drivers can book up to 7 calendar days ahead, not further', () => {
   const db = fresh();
   const days = Store.bookingDays(db);
-  assert.strictEqual(days.length, 4);
-  assert.ok(days.every((d) => ![0, 6].includes(new Date(d).getDay())));
-});
-
-test('EV booking holds one hour only', () => {
-  const db = fresh();
-  Store.reserve(db, 'Alex Morgan', 'E-1', tomorrowAt(10));
-  const free = (ms) => Store.freeSpots(db, 'ev', ms).some((s) => s.id === 'E-1');
-  assert.strictEqual(free(tomorrowAt(10) + H / 2), false);
-  assert.strictEqual(free(tomorrowAt(11)), true);
+  assert.strictEqual(days.length, 8); // today + 7 days, weekends included
+  const last = days[days.length - 1];
+  Store.reserve(db, 'Alex Morgan', 'C-01', Store.startFor(db, last));
+  assert.throws(() => Store.reserve(db, 'Alex Morgan', 'C-02', Store.startFor(db, last + D)), /7 days/);
 });
 
 test('a taken spot cannot be booked twice (first come, first served)', () => {
@@ -67,18 +62,17 @@ test('two tabs booking the same spot: second one is refused, first booking survi
   Store.reserve(tabA, 'Alex Morgan', 'C-01', tomorrowAt(8));
   assert.throws(() => Store.reserve(tabB, 'Sam Lee', 'C-01', tomorrowAt(8)), /just taken/);
   Store.reserve(tabB, 'Sam Lee', 'C-02', tomorrowAt(8));
-  const saved = Store.load().reservations.map((r) => r.spotId);
-  assert.deepStrictEqual(saved, ['C-01', 'C-02']);
+  assert.deepStrictEqual(Store.load().reservations.map((r) => r.spotId), ['C-01', 'C-02']);
 });
 
-test('10 people tap the same spot at once: exactly 1 gets it, 9 are told it was taken', () => {
+test('10 people tap the same spot at once: exactly 1 gets it', () => {
   const db = fresh();
-  const people = db.drivers.slice(0, 8).concat(Store.addDriver(db, 'Jordan Blake'), Store.addDriver(db, 'Noor Haddad'));
+  const people = Array.from({ length: 10 }, (_, i) => `Person ${i + 1}`);
   const tabs = people.map(() => Store.load()); // everyone's screen shows C-01 as free
-  const results = people.map((p, i) => {
-    try { Store.reserve(tabs[i], p, 'C-01', tomorrowAt(8)); return 'booked'; } catch (e) { return 'taken'; }
+  const booked = people.filter((p, i) => {
+    try { Store.reserve(tabs[i], p, 'C-01', tomorrowAt(8)); return true; } catch (e) { return false; }
   });
-  assert.strictEqual(results.filter((r) => r === 'booked').length, 1);
+  assert.strictEqual(booked.length, 1);
   assert.strictEqual(Store.load().reservations.length, 1);
 });
 
@@ -88,15 +82,31 @@ test('simulate 10 bookings: 10 different drivers, no spot booked twice', () => {
   const res = Store.load().reservations;
   assert.strictEqual(res.length, 10);
   assert.strictEqual(new Set(res.map((r) => r.driver)).size, 10);
-  const keys = res.map((r) => `${r.spotId}@${r.from}`);
-  assert.strictEqual(new Set(keys).size, 10);
-  assert.ok(log.some((line) => /was just taken/.test(line)), 'the log shows the race for the same spot');
+  assert.strictEqual(new Set(res.map((r) => `${r.spotId}@${r.from}`)).size, 10);
+  assert.ok(log.some((line) => /was just taken/.test(line)));
 });
 
-test('unknown drivers and past times are rejected', () => {
+test('cancel frees the spot and does not count as a no-show', () => {
   const db = fresh();
-  assert.throws(() => Store.reserve(db, 'Nobody', 'C-01', tomorrowAt(8)), /Unknown driver/);
+  const r = Store.reserve(db, 'Alex Morgan', 'C-01', tomorrowAt(8));
+  Store.cancel(db, r.id, 'Alex Morgan');
+  assert.ok(Store.freeSpots(db, 'car', tomorrowAt(8)).some((s) => s.id === 'C-01'));
+  setNow(db, tomorrowAt(12));
+  Store.releaseExpired(db);
+  assert.strictEqual(Store.noShows(db, 'Alex Morgan'), 0);
+  assert.throws(() => Store.cancel(db, r.id, 'Alex Morgan'), /cannot be cancelled/);
+});
+
+test('a driver cannot cancel someone else\'s reservation', () => {
+  const db = fresh();
+  const r = Store.reserve(db, 'Alex Morgan', 'C-01', tomorrowAt(8));
+  assert.throws(() => Store.cancel(db, r.id, 'Sam Lee'), /cannot be cancelled/);
+});
+
+test('past times are rejected; any entered name can book (no driver list)', () => {
+  const db = fresh();
   assert.throws(() => Store.reserve(db, 'Alex Morgan', 'C-01', Store.now(db) - 3 * H), /already past/);
+  assert.strictEqual(Store.reserve(db, 'New Person', 'C-01', tomorrowAt(8)).driver, 'New Person');
 });
 
 test('not checked in within 2 hours: released and spot free again', () => {
@@ -118,46 +128,75 @@ test('check-in works before the deadline, not after', () => {
   assert.throws(() => Store.checkIn(db, b.id), /not possible/);
 });
 
-test('admin sees today status per spot: free, reserved, checked-in', () => {
+test('warning shows after 3 no-shows, not before', () => {
+  const db = fresh();
+  for (let i = 0; i < 3; i++) {
+    Store.reserve(db, 'Alex Morgan', 'C-01', tomorrowAt(8) + i * D);
+    setNow(db, tomorrowAt(11) + i * D);
+    Store.releaseExpired(db);
+    assert.strictEqual(Store.showNoShowWarning(db, 'Alex Morgan'), i === 2);
+  }
+});
+
+test('sign-in by name: any name works, known names keep their spelling', () => {
+  const db = fresh();
+  assert.strictEqual(Store.signIn(db, '  alex morgan '), 'Alex Morgan');
+  assert.strictEqual(Store.signIn(db, 'Kim Park'), 'Kim Park');
+  assert.throws(() => Store.signIn(db, '   '), /Enter your name/);
+});
+
+test('admin sign-on: wrong password refused, right one allowed', () => {
+  const db = fresh();
+  assert.throws(() => Store.adminSignIn(db, Store.DEMO_ADMIN.user, 'wrong'), /Wrong/);
+  assert.strictEqual(Store.isAdmin(db), false);
+  Store.adminSignIn(db, Store.DEMO_ADMIN.user, Store.DEMO_ADMIN.password);
+  assert.strictEqual(Store.isAdmin(db), true);
+});
+
+test('only a signed-in admin can change spots, block or book for someone', () => {
+  const db = fresh();
+  assert.throws(() => Store.addSpot(db, 'car'), /Admin sign-on/);
+  assert.throws(() => Store.removeSpot(db, 'C-01'), /Admin sign-on/);
+  assert.throws(() => Store.blockSpot(db, 'C-01', tomorrowAt(0)), /Admin sign-on/);
+  assert.throws(() => Store.reserveFor(db, 'Sam Lee', 'C-01', tomorrowAt(0)), /Admin sign-on/);
+});
+
+test('admin: add spots with automatic or typed number, remove them', () => {
+  const db = fresh();
+  Store.adminSignIn(db, Store.DEMO_ADMIN.user, Store.DEMO_ADMIN.password);
+  assert.strictEqual(Store.addSpot(db, 'bicycle').id, 'B-11');
+  assert.strictEqual(Store.addSpot(db, 'car', 'c-50').id, 'C-50');
+  assert.throws(() => Store.addSpot(db, 'car', 'C-01'), /already exists/);
+  Store.removeSpot(db, 'B-11');
+  assert.strictEqual(db.spots.filter((s) => s.type === 'bicycle').length, 10);
+});
+
+test('admin: block a spot for a day; drivers see it booked', () => {
+  const db = fresh();
+  Store.adminSignIn(db, Store.DEMO_ADMIN.user, Store.DEMO_ADMIN.password);
+  const day = Store.startOfDay(tomorrowAt(12));
+  Store.blockSpot(db, 'C-03', day);
+  assert.strictEqual(Store.statusOn(db, 'C-03', day), 'blocked');
+  assert.ok(!Store.freeSpots(db, 'car', Store.startFor(db, day)).some((s) => s.id === 'C-03'));
+  assert.throws(() => Store.blockSpot(db, 'C-03', day), /just taken/);
+});
+
+test('admin: book on behalf of someone; it shows in their reservations', () => {
+  const db = fresh();
+  Store.adminSignIn(db, Store.DEMO_ADMIN.user, Store.DEMO_ADMIN.password);
+  const day = Store.startOfDay(tomorrowAt(12));
+  Store.reserveFor(db, 'Priya Shah', 'C-04', day);
+  assert.strictEqual(Store.statusOn(db, 'C-04', day), 'reserved');
+  assert.strictEqual(Store.reservationsOf(db, 'Priya Shah')[0].spotId, 'C-04');
+});
+
+test('admin sees status per spot: free, reserved, checked-in', () => {
   const db = fresh();
   setNow(db, tomorrowAt(7));
   const a = Store.reserve(db, 'Alex Morgan', 'C-01', tomorrowAt(8));
   Store.reserve(db, 'Sam Lee', 'C-02', tomorrowAt(8));
   setNow(db, tomorrowAt(9));
   Store.checkIn(db, a.id);
-  assert.deepStrictEqual(['C-01', 'C-02', 'C-03'].map((id) => Store.statusToday(db, id)), ['checked-in', 'reserved', 'free']);
-});
-
-test('warning shows after 3 no-shows, not before', () => {
-  const db = fresh();
-  for (let i = 0; i < 3; i++) {
-    Store.reserve(db, 'Alex Morgan', 'C-01', tomorrowAt(8) + i * 24 * H);
-    setNow(db, tomorrowAt(11) + i * 24 * H);
-    Store.releaseExpired(db);
-    assert.strictEqual(Store.showNoShowWarning(db, 'Alex Morgan'), i === 2);
-  }
-});
-
-test('sign-in by name only, case does not matter, unknown names rejected', () => {
-  const db = fresh();
-  assert.strictEqual(Store.signIn(db, '  alex morgan '), 'Alex Morgan');
-  assert.throws(() => Store.signIn(db, 'Nobody'), /not registered/);
-});
-
-test('admin: add and remove drivers, no duplicates', () => {
-  const db = fresh();
-  Store.addDriver(db, 'Jordan Blake');
-  assert.throws(() => Store.addDriver(db, 'jordan blake'), /already exists/);
-  Store.removeDriver(db, 'Jordan Blake');
-  assert.ok(!db.drivers.includes('Jordan Blake'));
-});
-
-test('admin: add spots with automatic or typed number, remove them', () => {
-  const db = fresh();
-  assert.strictEqual(Store.nextSpotId(db, 'car'), 'C-41');
-  assert.strictEqual(Store.addSpot(db, 'ev').id, 'E-4');
-  assert.strictEqual(Store.addSpot(db, 'car', 'c-50').id, 'C-50');
-  assert.throws(() => Store.addSpot(db, 'car', 'C-01'), /already exists/);
-  Store.removeSpot(db, 'E-4');
-  assert.strictEqual(db.spots.filter((s) => s.type === 'ev').length, 3);
+  const day = Store.startOfDay(tomorrowAt(9));
+  assert.deepStrictEqual(['C-01', 'C-02', 'C-03'].map((id) => Store.statusOn(db, id, day)), ['checked-in', 'reserved', 'free']);
 });

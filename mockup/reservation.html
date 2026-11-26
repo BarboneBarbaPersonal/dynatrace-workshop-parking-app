@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Screen 4: My reservations. Lets a driver come back later to check in (not in the design mockup yet). -->
+<!-- Screen 4: My reservations. View your own reservations, open one to check in, or cancel. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -13,15 +13,20 @@
   <script src="ui.js"></script>
   <script>
     const db = UI.driver('My reservations');
-    const labels = { reserved: 'Reserved', 'checked-in': 'Checked in', released: 'Released (not used)' };
-    if (db) {
+    function render() {
       const mine = Store.reservationsOf(db, db.currentDriver);
       document.getElementById('list').innerHTML = mine.length ? mine.map((r) =>
-        `<a class="card res" href="confirmed.html?id=${r.id}"><span class="num">${r.spotId}</span>
-          <span class="info">${Store.TYPES[r.type].label} · ${UI.day(r.start)} · ${UI.when(r)}<br>
-          <span class="pill ${r.status}">${labels[r.status]}</span></span><span aria-hidden="true">&rsaquo;</span></a>`).join('')
+        `<div class="card res"><a class="num" href="confirmed.html?id=${r.id}">${r.spotId}</a>
+          <a class="info" href="confirmed.html?id=${r.id}">${Store.TYPES[r.type].label} · ${UI.day(r.start)} · All day<br>
+          <span class="pill ${r.status}">${UI.LABELS[r.status]}</span></a>
+          ${r.status === 'reserved' ? `<button class="link-danger" type="button" data-cancel="${r.id}">Cancel</button>` : ''}</div>`).join('')
         : '<p class="muted">No reservations yet. <a href="find.html">Find a spot</a></p>';
     }
+    document.getElementById('list').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-cancel]');
+      if (b) { Store.cancel(db, Number(b.dataset.cancel), db.currentDriver); render(); }
+    });
+    if (db) render(); // no db = nobody signed in, the page is already going to sign-in
   </script>
 </body>
 </html>

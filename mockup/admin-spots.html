@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- Screen 5: Admin - spot inventory. Today's status per spot, add and remove spots. -->
+<!-- Screen 5: Admin - spot inventory. Status per spot for a day; add, remove, block, book for someone.
+     Anyone can look; every change asks for admin sign-on first (Spec.md). -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -11,7 +12,8 @@
   <div class="admin">
     <aside class="side"></aside>
     <main class="content">
-      <div><h1>Spot inventory</h1><p class="sub" id="today"></p></div>
+      <div><h1>Spot inventory</h1><p class="sub">Availability comes from reservations and check-ins only.</p></div>
+      <label class="field day-pick">Show day <select id="day"></select></label>
       <div class="stats" id="stats"></div>
       <form class="card" id="form">
         <h2 style="margin-bottom:.75rem">Add a spot</h2>
@@ -20,11 +22,11 @@
           <label class="field">Spot number <input type="text" id="num"></label>
           <button class="btn small" type="submit">Add spot</button>
         </div>
-        <p class="error" id="error" role="alert"></p>
       </form>
+      <p class="error" id="error" role="alert"></p>
       <section class="card">
         <div class="table-head"><h2 id="total"></h2><div class="filters" id="filters"></div></div>
-        <div class="scroll"><table><thead><tr><th>Spot</th><th>Type</th><th>Booking unit</th><th>Today</th><th>Actions</th></tr></thead>
+        <div class="scroll"><table><thead><tr><th>Spot</th><th>Type</th><th id="dayHead"></th><th>Actions</th></tr></thead>
           <tbody id="rows"></tbody></table></div>
       </section>
     </main>
@@ -34,39 +36,68 @@
   <script>
     const db = UI.admin();
     const $ = (id) => document.getElementById(id);
-    const unit = (k) => (Store.TYPES[k].unit === 'day' ? 'Per day' : 'Per hour');
-    const labels = { free: 'Free', reserved: 'Reserved', 'checked-in': 'Checked in' };
     let filter = 'all';
-    $('today').textContent = `Today, ${UI.day(Store.now(db))}. Availability comes from reservations and check-ins only.`;
-    $('type').innerHTML = Object.entries(Store.TYPES).map(([k, t]) => `<option value="${k}">${t.label} (${unit(k).toLowerCase()})</option>`).join('');
+    $('day').innerHTML = Store.bookingDays(db).map((d, i) => `<option value="${d}">${i === 0 ? 'Today, ' : ''}${UI.day(d)}</option>`).join('');
+    $('type').innerHTML = Object.entries(Store.TYPES).map(([k, t]) => `<option value="${k}">${t.label} (per day)</option>`).join('');
+    const day = () => Number($('day').value);
 
     function render() {
       const of = (k) => db.spots.filter((s) => s.type === k);
       $('stats').innerHTML = Object.entries(Store.TYPES).map(([k, t]) =>
         `<div class="card"><small>${t.label} spots</small><b>${of(k).length}</b>
-         <small>${of(k).filter((s) => Store.statusToday(db, s.id) === 'free').length} free today · booked ${unit(k).toLowerCase()}</small></div>`).join('');
+         <small>${of(k).filter((s) => Store.statusOn(db, s.id, day()) === 'free').length} free · booked per day</small></div>`).join('');
       $('num').placeholder = `Auto: ${Store.nextSpotId(db, $('type').value)}`;
       $('total').innerHTML = `All spots <span class="muted">(${db.spots.length})</span>`;
+      $('dayHead').textContent = UI.day(day());
       $('filters').innerHTML = [['all', `All ${db.spots.length}`], ...Object.entries(Store.TYPES).map(([k, t]) => [k, `${t.label} ${of(k).length}`])]
         .map(([k, text]) => `<button type="button" data-filter="${k}" aria-pressed="${k === filter}">${text}</button>`).join('');
       $('rows').innerHTML = db.spots.filter((s) => filter === 'all' || s.type === filter).map((s) => {
-        const st = Store.statusToday(db, s.id);
-        return `<tr><td>${s.id}</td><td>${Store.TYPES[s.type].label}</td><td>${unit(s.type)}</td>
-          <td><span class="pill ${st}">${labels[st]}</span></td>
-          <td><button class="link-danger" type="button" data-remove="${s.id}">Remove</button></td></tr>`;
+        const st = Store.statusOn(db, s.id, day());
+        const b = Store.bookingOn(db, s.id, day());
+        const who = b && st !== 'blocked' ? ` <span class="muted">${UI.esc(b.driver)}</span>` : '';
+        const free = st === 'free'
+          ? `<button class="link" type="button" data-block="${s.id}">Block</button>
+             <button class="link" type="button" data-for="${s.id}">Book for someone</button>` : '';
+        return `<tr><td>${s.id}</td><td>${Store.TYPES[s.type].label}</td>
+          <td><span class="pill ${st}">${UI.LABELS[st]}</span>${who}</td>
+          <td class="actions">${free}<button class="link-danger" type="button" data-remove="${s.id}">Remove</button></td></tr>`;
       }).join('');
     }
 
+    // Run a change; show any error (e.g. "just taken") and redraw.
+    function change(fn) {
+      UI.asAdmin(db, () => {
+        try { fn(); $('error').textContent = ''; } catch (err) { $('error').textContent = err.message; }
+        render();
+      });
+    }
+
+    $('day').addEventListener('change', render);
     $('type').addEventListener('change', render);
     $('form').addEventListener('submit', (e) => {
       e.preventDefault();
-      try { Store.addSpot(db, $('type').value, $('num').value); $('num').value = ''; $('error').textContent = ''; render(); }
-      catch (err) { $('error').textContent = err.message; }
+      change(() => { Store.addSpot(db, $('type').value, $('num').value); $('num').value = ''; });
     });
     document.querySelector('.content').addEventListener('click', (e) => {
       const b = e.target.closest('button');
-      if (b && b.dataset.filter) { filter = b.dataset.filter; render(); }
-      if (b && b.dataset.remove) { Store.removeSpot(db, b.dataset.remove); render(); }
+      if (!b) return;
+      if (b.dataset.filter) { filter = b.dataset.filter; render(); }
+      if (b.dataset.remove) change(() => Store.removeSpot(db, b.dataset.remove));
+      if (b.dataset.block) change(() => Store.blockSpot(db, b.dataset.block, day()));
+      if (b.dataset.for) {
+        UI.asAdmin(db, () => {
+          const m = UI.modal(`<h2>Book ${b.dataset.for} for someone</h2><p>${UI.day(day())}, all day.</p>
+            <form id="forForm"><label class="field">Their name <input type="text" id="forName" placeholder="e.g. Jordan Blake" required></label>
+            <div class="stack"><button class="btn" type="submit">Book spot</button><button class="btn ghost" type="button" data-close>Cancel</button></div></form>`);
+          m.querySelector('#forName').focus();
+          m.querySelector('#forForm').addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            const name = m.querySelector('#forName').value;
+            m.close();
+            change(() => Store.reserveFor(db, name, b.dataset.for, day()));
+          });
+        });
+      }
     });
     render();
   </script>

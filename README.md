@@ -13,8 +13,13 @@ Shared workshop project: a parking app instrumented with Dynatrace.
 - `CLAUDE.md` - rules every collaborator's Claude follows.
 
 ## Run the mockup
-Open `mockup/index.html` in a browser, or run `python -m http.server` in the repo folder and go to
+Live: https://barbonebarbapersonal.github.io/dynatrace-workshop-parking-app/mockup/
+Design it follows: `Garage Parking App Prototype.html`.
+
+Locally: open `mockup/index.html` in a browser, or run `python -m http.server` in the repo folder and go to
 http://localhost:8000/mockup/. Data is saved in your browser only.
+
+Demo admin account (mockup only, not real security - the site is public): name `admin`, password `parking-demo`.
 
 Run the logic tests: `node --test` (finds every `*.test.js` file).
 

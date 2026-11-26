@@ -30,19 +30,26 @@ Phases 0-4 are the "first good draft". Phases 5-7 come after the plan review.
 **Today: a working app to pitch.** Phases 1, 3 and 5 squeeze into one day; the sketches (phase 2)
 are quick ones inside each Issue, and the feedback round (phase 4) happens after the pitch.
 Done today when, from the published link, someone can: sign in by name, see free spots, reserve,
-get a spot number, check in, and an admin can add or remove spots and drivers.
+get a spot number, check in or cancel, and an admin (after sign-on) can add, remove and block spots
+and book for someone. **Status: done and live** (link in README).
 The 2-hour release and the no-show warning can't be waited for live, so the mockup has a
-demo clock at the bottom of every page (+1 hour, +1 day, reset demo data).
+demo bar at the bottom of every page (+1 hour, +1 day, simulate 10 people, reset demo).
 
-Mockup choices where `Spec.md` is still open (change them when the spec answers):
-- Cars and motorcycles: the driver picks a day and an arrival time; the spot is held all day.
-- EV chargers: one 1-hour slot per booking.
-- Check-in opens on the reservation's day. No cancel button (open question in the spec).
-- Admin pages are open to everyone (admin sign-in is an open question in the spec).
+Mockup choices where `Spec.md` doesn't say (change them when the spec answers):
+- All spot types are booked per day, starting 08:00 (check in by 10:00). Booked later on the same day,
+  the booking starts at that moment, so it isn't released straight away.
+- "Up to 7 calendar days ahead" = today plus the next 7 days (8 days to pick from).
+- Drivers can cancel only before checking in. Admins have no "unblock" (not in the spec).
+- Any name can sign in (managing drivers is out of scope); the same name always means the same person.
+- **Admin sign-on is for show only.** The demo account is in `README.md` and readable in the page
+  code, because the site is public and has no server. Real admin accounts need phase 5.
+
+**Spec gap for the real version:** "other users will see that spot as BOOKED" needs bookings shared
+between devices, so a server and database (phase 5). The mockup shares bookings only inside one browser.
 
 ## Two people booking the same spot at the same time
-- **Seeing what's booked:** drivers see taken spots greyed out and "N of 40 free"; the admin table shows
-  each spot as Free / Reserved / Checked in today.
+- **Seeing what's booked:** drivers see booked spots greyed out and "N of 40 free"; the admin table shows
+  each spot as Free / Reserved / Checked in / Blocked for the chosen day, with who booked it.
 - **Mockup (now):** before every booking the app re-reads the saved data, so a second tab can't overwrite
   a booking ("Sorry, this spot was just taken"). Tested in `tests/store.test.js`. Data is still per device.
 - **Real version (phase 5):** the server is the only source of truth and books with one atomic step
@@ -58,20 +65,22 @@ Mockup choices where `Spec.md` is still open (change them when the spec answers)
 - One person owns the spec decisions (PM role) to avoid endless debate. **(to confirm who)**
 
 ## 4. MVP screens (derived from `Spec.md`)
-Each screen maps to a section of the spec. Six screens, two per person.
+Each screen maps to a section of the spec. Look and feel: `Garage Parking App Prototype.html`.
 
 Driver:
 1. **Sign in** - enter a name, no password.
-2. **Find a spot** - pick spot type (car, motorcycle, EV charger) and time, see which spots are free.
-3. **Reservation confirmed** - shows the spot number.
-4. **My reservation** - check in on arrival; shows the no-show warning after 3 no-shows.
+2. **Find a spot** - pick spot type (car, motorcycle, EV charger, bicycle) and day (up to 7 days ahead),
+   see free and booked spots; no-show reminder after 3 no-shows.
+3. **Your reservation** - spot number, check in, cancel; "You're checked in" screen.
+4. **My reservations** - your own reservations, with cancel.
 
 Admin:
-5. **Spots** - view, add and remove spots by type.
-6. **Drivers** - add and remove drivers.
+5. **Spots** - view status per day; after admin sign-on: add, remove and block spots, book for someone.
 
-Rules to show with fake data in the prototype, built for real in phase 5:
-first come first served, release after 2 hours without check-in, no-show count.
+Out of scope (Spec.md exclusions): SSO, managing admin accounts, adding or removing drivers, payments.
+
+Rules shown with fake data in the mockup, built for real in phase 5:
+first come first served, release after 2 hours without check-in, no-show count, cancel.
 
 ## 5. Decisions to make (with a recommendation)
 

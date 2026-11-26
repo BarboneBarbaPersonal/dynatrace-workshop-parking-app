@@ -28,7 +28,7 @@ a { color: var(--blue); }
 .btn:disabled { background: #b8c0cc; cursor: default; }
 .btn.ghost { background: transparent; color: var(--blue); }
 .btn.small { display: inline-block; width: auto; padding: .55rem 1rem; font-size: .9rem; border-radius: 10px; }
-input[type=text], select { display: block; width: 100%; padding: .75rem .85rem; font: inherit; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--text); }
+input[type=text], input[type=password], select { display: block; width: 100%; padding: .75rem .85rem; font: inherit; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--text); }
 input:focus, select:focus, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .field { display: block; font-weight: 700; font-size: .9rem; margin-bottom: .75rem; }
 .field input, .field select { margin-top: .35rem; font-weight: 400; }
@@ -53,8 +53,12 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--blue)
 .hint { font-size: .85rem; color: var(--muted); margin-top: .4rem; }
 
 /* Vehicle cards and day chips */
-.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
-.days { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+.choices { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem; }
+.choices .choice { display: grid; grid-template-columns: auto 1fr; column-gap: .6rem; align-items: center; }
+.choices .choice svg { grid-row: span 2; margin: 0; }
+/* 8 days (today + 7): a row you can swipe sideways */
+.days { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
+.days .day { flex: 0 0 76px; }
 .choice { text-align: left; padding: .75rem; border: 2px solid var(--line); border-radius: 16px; background: #fff; color: var(--text); font: inherit; cursor: pointer; }
 .choice svg { width: 22px; height: 22px; display: block; margin-bottom: .5rem; }
 .choice b { display: block; font-size: .9rem; }
@@ -106,6 +110,8 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--blue)
 .pill.reserved { background: var(--blue-soft); color: var(--blue-text); }
 .pill.checked-in { background: var(--grey-soft); color: var(--grey-text); }
 .pill.released, .pill.warn { background: var(--warn-soft); color: var(--warn-text); }
+.pill.blocked { background: #fde7e5; color: var(--error); }
+.pill.cancelled { background: var(--grey-soft); color: var(--muted); text-decoration: line-through; }
 
 /* No-show reminder pop-up */
 .overlay { position: fixed; inset: 0; background: rgba(14, 23, 38, .45); display: grid; place-items: end center; padding: 1rem; }
@@ -124,7 +130,7 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--blue)
 .content { padding: 1.5rem 2rem 2rem; max-width: 1000px; }
 .content > * + * { margin-top: 1.25rem; }
 .sub { color: var(--muted); margin-top: .25rem; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 .stats b { display: block; font-size: 1.8rem; font-weight: 800; }
 .stats small { color: var(--muted); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: .75rem; align-items: end; }
@@ -137,7 +143,13 @@ table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th { text-align: left; font-size: .78rem; color: var(--muted); font-weight: 700; padding: .6rem .75rem; background: var(--bg); }
 td { padding: .7rem .75rem; border-top: 1px solid var(--line); }
 td:first-child { font-weight: 800; }
-.link-danger { border: 0; background: none; color: var(--error); font: inherit; font-weight: 600; cursor: pointer; }
+.link-danger, .link, .side-link { border: 0; background: none; color: var(--error); font: inherit; font-weight: 600; cursor: pointer; padding: .2rem .3rem; }
+.link { color: var(--blue); }
+.side-link { color: var(--muted); text-align: left; padding: .55rem .75rem; }
+.actions { white-space: nowrap; }
+.btn.danger { color: var(--error); }
+.day-pick { max-width: 260px; }
+.res a { color: inherit; text-decoration: none; }
 .who { display: flex; align-items: center; gap: .6rem; }
 .who i { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--blue-soft); color: var(--blue-text); font-style: normal; font-weight: 800; font-size: .8rem; }
 .scroll { overflow-x: auto; }

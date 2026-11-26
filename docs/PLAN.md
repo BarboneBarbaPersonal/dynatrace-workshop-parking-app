@@ -27,6 +27,13 @@ are assumptions, not decisions.
 
 Phases 0-4 are the "first good draft". Phases 5-7 come after the plan review.
 
+**Today: a working app to pitch.** Phases 1, 3 and 5 squeeze into one day; the sketches (phase 2)
+are quick ones inside each Issue, and the feedback round (phase 4) happens after the pitch.
+Done today when, from the published link, someone can: sign in by name, see free spots, reserve,
+get a spot number, check in, and an admin can add or remove spots and drivers.
+The 2-hour release and the no-show warning can't be waited for live, so show them with a
+prepared example. **(to confirm)**
+
 ## 3. Working at the same time (3 people)
 - Split work **by screen**, one Issue each, so people rarely edit the same files.
 - Build the **shared parts first** (layout, navigation, fake data for the 53 spots) in one small PR.
@@ -60,8 +67,8 @@ first come first served, release after 2 hours without check-in, no-show count.
 | Hosting for the prototype | GitHub Pages / other free hosts | GitHub Pages | Free, already where the code is |
 
 ## 6. Risks
-- **"Launch is today" (Spec.md) vs this plan's draft-first phases.** If launch means real use
-  today, phases 1-4 must shrink to hours. See question 2.
+- **One-day timeline for a working app.** The biggest risk. Fix: six screens only, no extra
+  features, simplest data storage that works for the pitch (question 2), polish after the pitch.
 - **Name-only sign-in.** Anyone can type any name, including an admin's. Acceptable for a
   prototype with fake data, not for real use. Already in the spec's open questions.
 - **Scope grows** ("one more feature"). Fix: the spec's "anything not listed is out" rule.
@@ -71,9 +78,10 @@ first come first served, release after 2 hours without check-in, no-show count.
 ## 7. Open questions for the plan (answer one at a time)
 The product questions (booking window, bicycles, EV rules, no-shows, sign-in) are in `Spec.md`.
 1. Is monitoring the app with Dynatrace a goal of the workshop (phase 7), or only the name?
-2. What does "launch today" mean: a clickable draft to show today, or a working app people use?
+2. For the pitch, must reservations be shared across devices (needs a backend and database), or is
+   one device enough (data saved in the browser, no server)?
 3. Who owns the spec decisions (PM role)?
 4. Roughly how many hours a week can each of us spend?
 
 Answered: app type is corporate parking (one shared garage, shared pool, first come first served);
-the first release is for both drivers and admins.
+the first release is for both drivers and admins; "launch today" means a working app to pitch today.

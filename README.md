@@ -2,11 +2,21 @@
 
 Shared workshop project: a parking app instrumented with Dynatrace.
 
+## Operating model
+1. **`Spec.md` defines the goal.** What we build and why. Changes go through a pull request.
+2. **`docs/PLAN.md` is what we follow.** Update it every time something is done or changes.
+3. **`mockup/` is what we improve and validate.** The working website we test with people.
+
 ## Where things live
-- `Spec.md` - the single shared spec (change it through a pull request).
-- `docs/PLAN.md` - build plan (draft, reviewed once the spec is complete).
+- `Spec.md`, `docs/PLAN.md`, `mockup/` - see above.
 - GitHub Issues - the task list. Assign yourself before you start a task.
 - `CLAUDE.md` - rules every collaborator's Claude follows.
+
+## Run the mockup
+Open `mockup/index.html` in a browser, or run `python -m http.server` in the repo folder and go to
+http://localhost:8000/mockup/. Data is saved in your browser only.
+
+Run the logic tests: `node --test` (finds every `*.test.js` file).
 
 ## How to contribute
 1. Accept the collaborator invite, then clone the repo.

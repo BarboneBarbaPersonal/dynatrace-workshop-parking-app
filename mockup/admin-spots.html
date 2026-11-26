@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- Screen 5: Admin - spot inventory. Today's status per spot, add and remove spots. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spots - Garage Parking admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="admin">
+    <aside class="side"></aside>
+    <main class="content">
+      <div><h1>Spot inventory</h1><p class="sub" id="today"></p></div>
+      <div class="stats" id="stats"></div>
+      <form class="card" id="form">
+        <h2 style="margin-bottom:.75rem">Add a spot</h2>
+        <div class="form-row">
+          <label class="field">Type <select id="type"></select></label>
+          <label class="field">Spot number <input type="text" id="num"></label>
+          <button class="btn small" type="submit">Add spot</button>
+        </div>
+        <p class="error" id="error" role="alert"></p>
+      </form>
+      <section class="card">
+        <div class="table-head"><h2 id="total"></h2><div class="filters" id="filters"></div></div>
+        <div class="scroll"><table><thead><tr><th>Spot</th><th>Type</th><th>Booking unit</th><th>Today</th><th>Actions</th></tr></thead>
+          <tbody id="rows"></tbody></table></div>
+      </section>
+    </main>
+  </div>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    const db = UI.admin();
+    const $ = (id) => document.getElementById(id);
+    const unit = (k) => (Store.TYPES[k].unit === 'day' ? 'Per day' : 'Per hour');
+    const labels = { free: 'Free', reserved: 'Reserved', 'checked-in': 'Checked in' };
+    let filter = 'all';
+    $('today').textContent = `Today, ${UI.day(Store.now(db))}. Availability comes from reservations and check-ins only.`;
+    $('type').innerHTML = Object.entries(Store.TYPES).map(([k, t]) => `<option value="${k}">${t.label} (${unit(k).toLowerCase()})</option>`).join('');
+
+    function render() {
+      const of = (k) => db.spots.filter((s) => s.type === k);
+      $('stats').innerHTML = Object.entries(Store.TYPES).map(([k, t]) =>
+        `<div class="card"><small>${t.label} spots</small><b>${of(k).length}</b>
+         <small>${of(k).filter((s) => Store.statusToday(db, s.id) === 'free').length} free today · booked ${unit(k).toLowerCase()}</small></div>`).join('');
+      $('num').placeholder = `Auto: ${Store.nextSpotId(db, $('type').value)}`;
+      $('total').innerHTML = `All spots <span class="muted">(${db.spots.length})</span>`;
+      $('filters').innerHTML = [['all', `All ${db.spots.length}`], ...Object.entries(Store.TYPES).map(([k, t]) => [k, `${t.label} ${of(k).length}`])]
+        .map(([k, text]) => `<button type="button" data-filter="${k}" aria-pressed="${k === filter}">${text}</button>`).join('');
+      $('rows').innerHTML = db.spots.filter((s) => filter === 'all' || s.type === filter).map((s) => {
+        const st = Store.statusToday(db, s.id);
+        return `<tr><td>${s.id}</td><td>${Store.TYPES[s.type].label}</td><td>${unit(s.type)}</td>
+          <td><span class="pill ${st}">${labels[st]}</span></td>
+          <td><button class="link-danger" type="button" data-remove="${s.id}">Remove</button></td></tr>`;
+      }).join('');
+    }
+
+    $('type').addEventListener('change', render);
+    $('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      try { Store.addSpot(db, $('type').value, $('num').value); $('num').value = ''; $('error').textContent = ''; render(); }
+      catch (err) { $('error').textContent = err.message; }
+    });
+    document.querySelector('.content').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (b && b.dataset.filter) { filter = b.dataset.filter; render(); }
+      if (b && b.dataset.remove) { Store.removeSpot(db, b.dataset.remove); render(); }
+    });
+    render();
+  </script>
+</body>
+</html>

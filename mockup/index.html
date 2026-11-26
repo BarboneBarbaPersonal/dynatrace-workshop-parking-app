@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Screen 1: Sign in. Drivers identify themselves by name only, no password. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Garage Parking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="phone">
+    <div class="welcome">
+      <span class="logo"><i>P</i>Garage Parking</span>
+      <div class="hero"><span class="t"></span><span></span><span class="t"></span><span></span><span></span>
+        <span></span><span class="t"></span><span class="p">P</span><span></span><span class="t"></span></div>
+      <div><h1>Park without the hunt.</h1>
+        <p class="muted">See free spots in the shared garage and reserve yours in seconds.</p></div>
+      <form id="form">
+        <label class="field">Your name <input type="text" id="name" placeholder="e.g. Alex Morgan" autocomplete="name" required></label>
+        <p class="hint">No password needed. Use the name your building admin registered.</p>
+        <p class="error" id="error" role="alert"></p>
+        <button class="btn" type="submit">Continue</button>
+      </form>
+      <p class="center"><a href="admin-spots.html">Building admin console</a></p>
+    </div>
+  </div>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    // Already signed in: go straight to finding a spot.
+    const db = Store.load();
+    if (db.currentDriver) location.replace('find.html');
+    UI.demo(db, document.querySelector('.phone'));
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      try { Store.signIn(db, document.getElementById('name').value); location.href = 'find.html'; }
+      catch (err) { document.getElementById('error').textContent = err.message; }
+    });
+  </script>
+</body>
+</html>

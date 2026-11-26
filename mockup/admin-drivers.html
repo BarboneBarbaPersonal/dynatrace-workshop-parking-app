@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- Screen 6: Admin - drivers. Only registered names can reserve; shows no-shows per driver. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drivers - Garage Parking admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="admin">
+    <aside class="side"></aside>
+    <main class="content">
+      <div><h1>Drivers</h1><p class="sub">Only registered names can reserve. Drivers sign in with their name, no password.</p></div>
+      <form class="card" id="form">
+        <h2 style="margin-bottom:.75rem">Add a driver</h2>
+        <div class="form-row" style="grid-template-columns:1fr auto">
+          <label class="field">Full name <input type="text" id="name" placeholder="e.g. Jordan Blake" required></label>
+          <button class="btn small" type="submit">Add driver</button>
+        </div>
+        <p class="error" id="error" role="alert"></p>
+      </form>
+      <section class="card">
+        <div class="table-head"><h2 id="total"></h2></div>
+        <div class="scroll"><table><thead><tr><th>Name</th><th>No-shows</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="rows"></tbody></table></div>
+      </section>
+    </main>
+  </div>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    const db = UI.admin();
+    const $ = (id) => document.getElementById(id);
+    function render() {
+      $('total').innerHTML = `Registered drivers <span class="muted">(${db.drivers.length})</span>`;
+      $('rows').innerHTML = db.drivers.map((d) => {
+        const warned = Store.showNoShowWarning(db, d);
+        return `<tr><td><span class="who"><i>${UI.esc(d[0])}</i>${UI.esc(d)}</span></td><td>${Store.noShows(db, d)}</td>
+          <td><span class="pill ${warned ? 'warn' : 'free'}">${warned ? 'Reminder shown' : 'Good standing'}</span></td>
+          <td><button class="link-danger" type="button" data-name="${UI.esc(d)}">Remove</button></td></tr>`;
+      }).join('');
+    }
+    $('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      try { Store.addDriver(db, $('name').value); $('name').value = ''; $('error').textContent = ''; render(); }
+      catch (err) { $('error').textContent = err.message; }
+    });
+    $('rows').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-name]');
+      if (b) { Store.removeDriver(db, b.dataset.name); render(); }
+    });
+    render();
+  </script>
+</body>
+</html>

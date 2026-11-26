@@ -19,9 +19,9 @@ are assumptions, not decisions.
 | 0 | Align on the problem | PM | `Spec.md` users, scope, inventory | All three of us agree | Draft 1 written; open questions remain |
 | 1 | Define the MVP | PM | One GitHub Issue per screen in section 4, with acceptance criteria from `Spec.md` | Every MVP screen is an Issue with a clear "done" | Not started |
 | 2 | Map the flows | PM + design | A user-flow diagram and rough wireframes (boxes, no colors) for every screen | Each flow is a sequence of screens we reviewed together | Not started |
-| 3 | Clickable prototype | Developer | Web app with fake data, mobile layout first, published online (e.g. GitHub Pages, free) | Someone outside the team can click through every flow on a phone and a laptop | Not started |
+| 3 | Clickable prototype | Developer | Web app with fake data, mobile layout first, published online (e.g. GitHub Pages, free) | Someone outside the team can click through every flow on a phone and a laptop | All 6 screens built in `mockup/` and tested on phone and desktop size; not published yet |
 | 4 | Feedback round | PM | Notes from 3-5 people trying the prototype | Top changes are logged as Issues and the spec is updated | Not started |
-| 5 | First working version | Developer | Real data and rules (reservations, 2-hour release, no-show count) | A driver can reserve and check in for real | Not started |
+| 5 | First working version | Developer | Real data and rules (reservations, 2-hour release, no-show count) | A driver can reserve and check in for real | Rules work in the mockup with browser storage (11 tests pass); shared backend not started |
 | 6 | Mobile decision | PM + developer | Choice: stay web / installable web app (PWA) / native app | Decision recorded in `Spec.md` with the reason | Later phase |
 | 7 | Observability **(to confirm, question 1)** | Developer | Dynatrace monitoring on the app (it supports web and mobile apps) | We can see real user sessions in Dynatrace | Not started |
 
@@ -31,8 +31,24 @@ Phases 0-4 are the "first good draft". Phases 5-7 come after the plan review.
 are quick ones inside each Issue, and the feedback round (phase 4) happens after the pitch.
 Done today when, from the published link, someone can: sign in by name, see free spots, reserve,
 get a spot number, check in, and an admin can add or remove spots and drivers.
-The 2-hour release and the no-show warning can't be waited for live, so show them with a
-prepared example. **(to confirm)**
+The 2-hour release and the no-show warning can't be waited for live, so the mockup has a
+demo clock at the bottom of every page (+1 hour, +1 day, reset demo data).
+
+Mockup choices where `Spec.md` is still open (change them when the spec answers):
+- Cars and motorcycles: the driver picks a day and an arrival time; the spot is held all day.
+- EV chargers: one 1-hour slot per booking.
+- Check-in opens on the reservation's day. No cancel button (open question in the spec).
+- Admin pages are open to everyone (admin sign-in is an open question in the spec).
+
+## Two people booking the same spot at the same time
+- **Seeing what's booked:** drivers see taken spots greyed out and "N of 40 free"; the admin table shows
+  each spot as Free / Reserved / Checked in today.
+- **Mockup (now):** before every booking the app re-reads the saved data, so a second tab can't overwrite
+  a booking ("Sorry, this spot was just taken"). Tested in `tests/store.test.js`. Data is still per device.
+- **Real version (phase 5):** the server is the only source of truth and books with one atomic step
+  (e.g. a database rule: one active booking per spot and time). The second request gets "spot just taken",
+  the app refreshes the grid and the driver picks another spot. Refresh the grid regularly so taken spots
+  show up without reloading.
 
 ## 3. Working at the same time (3 people)
 - Split work **by screen**, one Issue each, so people rarely edit the same files.
@@ -45,7 +61,7 @@ prepared example. **(to confirm)**
 Each screen maps to a section of the spec. Six screens, two per person.
 
 Driver:
-1. **Sign in** - enter a name (no SSO).
+1. **Sign in** - enter a name, no password.
 2. **Find a spot** - pick spot type (car, motorcycle, EV charger) and time, see which spots are free.
 3. **Reservation confirmed** - shows the spot number.
 4. **My reservation** - check in on arrival; shows the no-show warning after 3 no-shows.

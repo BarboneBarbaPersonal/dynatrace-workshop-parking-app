@@ -1,0 +1,49 @@
+<!doctype html>
+<!-- Screen 3: Reservation details. Spot number, check-in button, and the "checked in" state. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your reservation - Garage Parking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="phone"><main id="box"></main></div>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    const db = UI.driver('Your reservation');
+    function render() {
+      const id = Number(new URLSearchParams(location.search).get('id'));
+      const r = db.reservations.find((x) => x.id === id && x.driver === db.currentDriver);
+      const box = document.getElementById('box');
+      if (!r) { box.innerHTML = '<p>Reservation not found.</p><a class="btn ghost" href="find.html">Back to search</a>'; return; }
+      const t = Store.TYPES[r.type].label;
+      if (r.status === 'checked-in') {
+        box.innerHTML = `<div class="center"><div class="done-icon">&#10003;</div><h2>You're checked in</h2>
+          <div class="spot-number"><span class="eyebrow">Park in spot</span><b>${r.spotId}</b></div>
+          <p class="muted">${t} · ${UI.day(r.start)} · ${UI.when(r)}</p></div>
+          <p style="margin-top:1rem"><a class="btn" href="find.html">Done</a></p>`;
+        return;
+      }
+      const deadline = UI.time(Store.releaseDeadline(r));
+      const action = r.status === 'released'
+        ? `<p class="note">Not checked in by ${deadline}: the spot went back to the pool.</p>`
+        : Store.canCheckIn(db, r)
+          ? `<button class="btn" type="button" id="checkin">I've arrived, check in</button>`
+          : `<button class="btn" type="button" disabled>Check-in opens ${UI.day(r.start)}</button>`;
+      box.innerHTML = `<div class="card">
+        <h2>${r.status === 'released' ? 'Reservation released' : 'Spot reserved'}</h2>
+        <p class="muted">It's held for you, ${UI.esc(r.driver)}.</p>
+        <div class="spot-number"><span class="eyebrow">Your spot number</span><b>${r.spotId}</b></div>
+        <dl class="facts"><dt>Vehicle</dt><dd>${t}</dd><dt>Day</dt><dd>${UI.day(r.start)}</dd>
+          <dt>Time</dt><dd>${UI.when(r)}</dd><dt>Check in by</dt><dd>${deadline}</dd></dl>
+        ${r.status === 'reserved' ? `<p class="note">Not checked in by ${deadline}? The spot goes back to the pool for your colleagues.</p>` : ''}
+        <div class="stack">${action}<a class="btn ghost" href="find.html">Back to search</a></div></div>`;
+      const c = document.getElementById('checkin');
+      if (c) c.addEventListener('click', () => { Store.checkIn(db, r.id); render(); });
+    }
+    if (db) render(); // no db = nobody signed in, the page is already going to sign-in
+  </script>
+</body>
+</html>

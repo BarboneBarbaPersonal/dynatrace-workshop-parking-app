@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- Screen 4: My reservations. Lets a driver come back later to check in (not in the design mockup yet). -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My reservations - Garage Parking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="phone"><main id="list"></main></div>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    const db = UI.driver('My reservations');
+    const labels = { reserved: 'Reserved', 'checked-in': 'Checked in', released: 'Released (not used)' };
+    if (db) {
+      const mine = Store.reservationsOf(db, db.currentDriver);
+      document.getElementById('list').innerHTML = mine.length ? mine.map((r) =>
+        `<a class="card res" href="confirmed.html?id=${r.id}"><span class="num">${r.spotId}</span>
+          <span class="info">${Store.TYPES[r.type].label} · ${UI.day(r.start)} · ${UI.when(r)}<br>
+          <span class="pill ${r.status}">${labels[r.status]}</span></span><span aria-hidden="true">&rsaquo;</span></a>`).join('')
+        : '<p class="muted">No reservations yet. <a href="find.html">Find a spot</a></p>';
+    }
+  </script>
+</body>
+</html>

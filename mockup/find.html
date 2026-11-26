@@ -1,0 +1,89 @@
+<!doctype html>
+<!-- Screen 2: Find a spot. Pick vehicle, day (and hour for EV), see free and taken spots, reserve. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Find a spot - Garage Parking</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="phone">
+    <main>
+      <p class="label">Vehicle</p><div class="choices" id="types"></div>
+      <p class="label">Day</p><div class="days" id="days"></div>
+      <div id="slotsBox" hidden><p class="label">Start time · 1 hour slot</p><div class="slots" id="slots"></div></div>
+      <section class="card pick">
+        <div class="pick-head"><h2>Pick a spot</h2><span class="free-count" id="count"></span></div>
+        <div class="legend"><span>Free</span><span class="t">Taken</span><span class="s">Selected</span></div>
+        <div class="grid" id="grid"></div>
+      </section>
+      <p class="error" id="error" role="alert"></p>
+      <div class="sticky"><button class="btn" id="reserve" type="button" disabled>Select a free spot</button></div>
+    </main>
+  </div>
+  <script src="store.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    const db = UI.driver('Find a spot');
+    if (db) { // no db = nobody signed in, the page is already going to sign-in
+    const days = Store.bookingDays(db);
+    const state = { type: 'car', day: days[0], hour: null, spot: null };
+    const $ = (id) => document.getElementById(id);
+
+    // EV slots in the past (today) can't be picked.
+    const slotOpen = (h) => state.day + h * Store.HOUR > Store.now(db);
+    const start = () => Store.startFor(db, state.type, state.day, state.hour);
+    const freeFor = (type) => Store.freeSpots(db, type, Store.startFor(db, type, state.day, type === 'ev' ? (state.hour ?? Store.EV_SLOTS[0]) : 0));
+
+    function render() {
+      const isEv = Store.TYPES[state.type].unit === 'hour';
+      if (isEv && (state.hour === null || !slotOpen(state.hour))) state.hour = Store.EV_SLOTS.find(slotOpen) ?? null;
+      $('types').innerHTML = Object.entries(Store.TYPES).map(([k, t]) =>
+        `<button type="button" class="choice" data-type="${k}" aria-pressed="${k === state.type}">${UI.ICONS[k]}<b>${t.label}</b><small>${freeFor(k).length} free</small></button>`).join('');
+      $('days').innerHTML = days.map((d, i) =>
+        `<button type="button" class="choice day" data-day="${d}" aria-pressed="${d === state.day}"><b>${i === 0 ? 'Today' : UI.day(d).split(' ')[0]}</b><small>${i === 0 ? UI.day(d).replace(',', '') : UI.day(d).split(' ').slice(1).join(' ')}</small></button>`).join('');
+      $('slotsBox').hidden = !isEv;
+      $('slots').innerHTML = Store.EV_SLOTS.map((h) =>
+        `<button type="button" class="slot" data-hour="${h}" aria-pressed="${h === state.hour}"${slotOpen(h) ? '' : ' disabled'}>${String(h).padStart(2, '0')}:00</button>`).join('');
+
+      const all = db.spots.filter((s) => s.type === state.type);
+      const noTime = isEv && state.hour === null;
+      const free = new Set(noTime ? [] : Store.freeSpots(db, state.type, start()).map((s) => s.id));
+      if (!free.has(state.spot)) state.spot = null;
+      $('count').textContent = noTime ? 'No slots left today' : `${free.size} of ${all.length} free`;
+      $('grid').innerHTML = all.map((s) => free.has(s.id)
+        ? `<button type="button" class="spot" data-spot="${s.id}" aria-pressed="${s.id === state.spot}">${s.id}</button>`
+        : `<button type="button" class="spot taken" disabled aria-label="${s.id} taken">${s.id}</button>`).join('');
+      $('reserve').disabled = !state.spot;
+      $('reserve').textContent = state.spot ? `Reserve spot ${state.spot}` : 'Select a free spot';
+    }
+
+    // One click handler for all the buttons on this screen.
+    document.querySelector('main').addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b || b.disabled) return;
+      if (b.dataset.type) { state.type = b.dataset.type; state.spot = null; }
+      if (b.dataset.day) { state.day = Number(b.dataset.day); state.spot = null; }
+      if (b.dataset.hour) { state.hour = Number(b.dataset.hour); }
+      if (b.dataset.spot) { state.spot = b.dataset.spot; }
+      if (b.id === 'reserve') {
+        try { const r = Store.reserve(db, db.currentDriver, state.spot, start()); location.href = `confirmed.html?id=${r.id}`; return; }
+        catch (err) { $('error').textContent = err.message; } // e.g. someone else just took it: grid redraws below
+      } else { $('error').textContent = ''; }
+      render();
+    });
+
+    // Spec: after 3 no-shows the app shows a reminder (once per sign-in).
+    if (Store.showNoShowWarning(db, db.currentDriver) && !db.noShowSeen) {
+      document.body.insertAdjacentHTML('beforeend', `<div class="overlay" id="modal"><div class="modal" role="dialog" aria-modal="true">
+        <h2>You've missed ${Store.noShows(db, db.currentDriver)} reservations</h2>
+        <p>Unused reservations block spots your colleagues could have used. Please only reserve when you plan to come, and check in within 2 hours of the start.</p>
+        <button class="btn" type="button" id="gotit">Got it</button></div></div>`);
+      $('gotit').addEventListener('click', () => { Store.dismissNoShow(db); $('modal').remove(); });
+    }
+    render();
+    }
+  </script>
+</body>
+</html>

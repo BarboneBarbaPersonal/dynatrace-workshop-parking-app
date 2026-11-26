@@ -193,12 +193,51 @@
   }
   function removeSpot(db, id) { refresh(db); db.spots = db.spots.filter((s) => s.id !== id); save(db); }
 
+  // --- Demo: simulate 10 people booking at once ---
+  // People 1-3 all tap the same car spot at the same moment (each has their own copy of the
+  // screen): one gets it, the others are told it was just taken and pick the next free spot.
+  // Then 5 more cars, 1 motorcycle, 1 EV charger. Some drivers check in.
+  function simulate(db) {
+    refresh(db);
+    for (const name of ['Jordan Blake', 'Noor Haddad']) if (db.drivers.length < 10 && !findDriver(db, name)) addDriver(db, name);
+    const people = db.drivers.slice(0, 10);
+    const day = bookingDays(db)[0];
+    const evStart = bookingDays(db).flatMap((d) => EV_SLOTS.map((h) => d + h * HOUR)).find((s) => s > now(db));
+    const plan = people.map((p, i) => (i < 8 ? 'car' : i === 8 ? 'motorcycle' : 'ev'));
+    const startOf = (type) => (type === 'ev' ? evStart : startFor(db, type, day));
+    const sameSpot = (freeSpots(db, 'car', startOf('car'))[0] || {}).id;
+    const tabs = people.map(() => load()); // everyone opened the app before anyone booked
+    const log = [];
+
+    people.forEach((person, i) => {
+      const type = plan[i];
+      // People 4-10 open the app later, so they see the latest free spots.
+      const want = i < 3 ? sameSpot : (freeSpots(load(), type, startOf(type))[0] || {}).id;
+      try {
+        const r = reserve(tabs[i], person, want, startOf(type));
+        log.push(`${person} booked ${r.spotId} (${TYPES[type].label})`);
+      } catch (err) {
+        const next = (freeSpots(load(), type, startOf(type))[0] || {}).id;
+        if (!next) { log.push(`${person} tried ${want}: no free ${TYPES[type].label.toLowerCase()} spot left`); return; }
+        reserve(tabs[i], person, next, startOf(type));
+        log.push(`${person} tried ${want}: it was just taken, booked ${next} instead`);
+      }
+    });
+
+    // Some drivers arrive and check in, so the admin table shows all three statuses.
+    refresh(db);
+    for (const r of db.reservations.filter((x) => people.indexOf(x.driver) % 2 === 0)) {
+      if (canCheckIn(db, r)) { checkIn(db, r.id); log.push(`${r.driver} checked in at ${r.spotId}`); }
+    }
+    return log;
+  }
+
   const Store = {
     TYPES, HOUR, RELEASE_AFTER_HOURS, NO_SHOW_WARNING_AT, EV_SLOTS,
     useStorage, load, save, reset, now, advanceClock, startOfDay, bookingDays, startFor,
     freeSpots, reserve, releaseExpired, canCheckIn, checkIn, releaseDeadline,
     reservationsOf, noShows, showNoShowWarning, dismissNoShow, statusToday,
-    findDriver, signIn, signOut, addDriver, removeDriver, nextSpotId, addSpot, removeSpot,
+    findDriver, signIn, signOut, addDriver, removeDriver, nextSpotId, addSpot, removeSpot, simulate,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = Store;
   else root.Store = Store;

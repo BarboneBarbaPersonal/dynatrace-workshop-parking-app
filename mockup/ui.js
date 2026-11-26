@@ -19,10 +19,24 @@ const UI = (() => {
     into.insertAdjacentHTML('beforeend',
       `<footer class="demo"><span>Demo clock: <strong>${day(Store.now(db))} ${time(Store.now(db))}</strong></span>
        <button type="button" data-hours="1">+1 hour</button><button type="button" data-hours="24">+1 day</button>
+       <button type="button" data-simulate>Simulate 10 people</button>
        <button type="button" data-reset>Reset demo</button></footer>`);
     into.querySelectorAll('[data-hours]').forEach((b) =>
       b.addEventListener('click', () => { Store.advanceClock(db, Number(b.dataset.hours)); location.reload(); }));
     into.querySelector('[data-reset]').addEventListener('click', () => { Store.reset(); location.href = 'index.html'; });
+    // Simulate: book for 10 people, then reload and show what happened in a pop-up.
+    into.querySelector('[data-simulate]').addEventListener('click', () => {
+      sessionStorage.setItem('simLog', JSON.stringify(Store.simulate(db)));
+      location.reload();
+    });
+    const log = JSON.parse(sessionStorage.getItem('simLog') || 'null');
+    if (log) {
+      sessionStorage.removeItem('simLog');
+      document.body.insertAdjacentHTML('beforeend', `<div class="overlay" id="simModal"><div class="modal" role="dialog" aria-modal="true">
+        <h2>10 people just booked</h2><ul class="sim-log">${log.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+        <button class="btn" type="button" id="simClose">Close</button></div></div>`);
+      document.getElementById('simClose').addEventListener('click', () => document.getElementById('simModal').remove());
+    }
   }
 
   // Driver screens: greeting header, tabs, demo bar. Sends you to sign-in if nobody is signed in.

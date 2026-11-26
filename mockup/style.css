@@ -112,6 +112,8 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--blue)
 .modal { background: #fff; border-radius: 20px; padding: 1.25rem; max-width: 420px; width: 100%; }
 .modal h2 { font-size: 1.15rem; margin-bottom: .5rem; }
 .modal p { color: var(--muted); margin-bottom: 1rem; }
+.sim-log { margin: 0 0 1rem; padding-left: 1.1rem; font-size: .88rem; max-height: 50vh; overflow-y: auto; }
+.sim-log li { margin-bottom: .25rem; }
 
 /* ---------- Admin console ---------- */
 .admin { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }

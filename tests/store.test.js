@@ -71,6 +71,28 @@ test('two tabs booking the same spot: second one is refused, first booking survi
   assert.deepStrictEqual(saved, ['C-01', 'C-02']);
 });
 
+test('10 people tap the same spot at once: exactly 1 gets it, 9 are told it was taken', () => {
+  const db = fresh();
+  const people = db.drivers.slice(0, 8).concat(Store.addDriver(db, 'Jordan Blake'), Store.addDriver(db, 'Noor Haddad'));
+  const tabs = people.map(() => Store.load()); // everyone's screen shows C-01 as free
+  const results = people.map((p, i) => {
+    try { Store.reserve(tabs[i], p, 'C-01', tomorrowAt(8)); return 'booked'; } catch (e) { return 'taken'; }
+  });
+  assert.strictEqual(results.filter((r) => r === 'booked').length, 1);
+  assert.strictEqual(Store.load().reservations.length, 1);
+});
+
+test('simulate 10 bookings: 10 different drivers, no spot booked twice', () => {
+  const db = fresh();
+  const log = Store.simulate(db);
+  const res = Store.load().reservations;
+  assert.strictEqual(res.length, 10);
+  assert.strictEqual(new Set(res.map((r) => r.driver)).size, 10);
+  const keys = res.map((r) => `${r.spotId}@${r.from}`);
+  assert.strictEqual(new Set(keys).size, 10);
+  assert.ok(log.some((line) => /was just taken/.test(line)), 'the log shows the race for the same spot');
+});
+
 test('unknown drivers and past times are rejected', () => {
   const db = fresh();
   assert.throws(() => Store.reserve(db, 'Nobody', 'C-01', tomorrowAt(8)), /Unknown driver/);

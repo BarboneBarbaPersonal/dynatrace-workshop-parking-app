@@ -1,28 +1,5 @@
 # Spec&#32;
 
-parking app
-
-web first, then mobile&#32;
-
-Interview questions, first round:
-
-1. Who are the users? Drivers booking, lot operators or admins managing spots, or both?
-   1. Users are drivers booking a spot (motorcycle, car, or bicycle). Secondary could be building admins who need to inventory the spots available, add/remove drivers.
-2. What kind of parking is it (company lot, city garages, private driveways, event venues)? How many locations and spots?
-   1. Building underground garage, shared across companies. Includes different types of parking spots for motorcycles, cars, and electric chargers. 40 car spots, 10 moto spots, 3 chargers.
-   2. How is availability known: sensors, manual entry, or an existing system to integrate with?
-      1. There is no sensor. First come first served. A driver should be able to reserve a spot in advance (up to 1hr, for a specific time) and then check in in the app.&#32;
-3. How do bookings work: by the hour, day or month; advance limits; cancellation and no-show rules?
-   1. By the day. EV charger should be by hours. No show - reserved spot frees back up if not checked in within 2 hrs of reservation.
-4. Are payments in scope? If so, which provider and currencies?
-   1. no payments required - employer sponsored free parking. include a reminder/nastygram if someone repeatedly reserves spots and doesn't check in (after 3 no shows)&#32;
-5. How do users sign in, and is there a corporate SSO requirement?
-   1. reserve a spot, enter your name. no need to build SSO.&#32;
-6. What does the driver need on arrival: QR code, gate integration, or a spot number?
-   1. spot number
-7. What is the launch date, and what is the web-first MVP cut before mobile?
-   1. launch date is today
-
 ## Parking app spec, draft 1
 
 A web app lets employees of companies sharing one underground garage see free spots and reserve one. Mobile follows after the web version.

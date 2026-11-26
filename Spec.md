@@ -39,11 +39,3 @@ After 3 no-shows by the same driver, the app shows a reminder warning about repe
 
 Launch is today, web only. Mobile is a later phase. Anything not listed above is out of the first release.
 
-## Open questions
-
-- [ ] Booking is by the day, but the advance window was given as up to 1 hour for a specific time. Which applies to cars and motorcycles?
-- [ ] Bicycles were named as a vehicle type, but no bicycle spot count was given. Are there bicycle spots?
-- [ ] EV charger: slot length, maximum hours per booking, and whether a charger spot can be used by non-EV cars.
-- [ ] The no-show warning needs a contact channel. Names only are collected, so is it shown in-app on next login?
-- [ ] Does name-only sign-in need protection against two drivers using the same name, and how are admins authenticated?
-- [ ] Do no-show counts reset over time, and can a driver cancel before the 2-hour window?

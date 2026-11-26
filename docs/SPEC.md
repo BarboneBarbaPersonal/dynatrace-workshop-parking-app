@@ -6,6 +6,8 @@ so everyone sees and agrees on the change.
 ## Goal
 What we want to learn and build. (TBD - agree together)
 
+App type: corporate parking (a company's parking spots, used by its employees). Details TBD.
+
 ## Users
 Who uses the app and what they need. (TBD)
 

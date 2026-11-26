@@ -1,0 +1,16 @@
+﻿# Secrets and local config
+.env
+.env.*
+*.pem
+*.key
+# Dependencies and builds
+node_modules/
+build/
+dist/
+__pycache__/
+.venv/
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

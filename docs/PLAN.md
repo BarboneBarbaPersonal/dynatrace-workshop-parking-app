@@ -62,13 +62,17 @@ first come first served, release after 2 hours without check-in, no-show count.
 | Decision | Options | Recommendation | Why |
 |----------|---------|----------------|-----|
 | Prototype tool | Design tool (e.g. Figma) / coded prototype / no-code tool | Coded prototype | Claude can build it, it becomes the base of the real app, and Dynatrace can monitor a real web page |
-| Web tech | Plain HTML/CSS/JS / a framework such as React | React (with a starter tool like Vite) | Splits screens into reusable pieces, very common so lots of learning material, path to React Native for mobile |
+| Web tech | Plain HTML/CSS/JS / a framework such as React | Plain HTML/CSS/JS, one file per screen, no build step | Built in one day by three beginners: nothing to install, publishes straight to GitHub Pages, one file per screen keeps people out of each other's files. Revisit React in phase 5 if the app grows |
+| Data storage (pitch) | Browser storage / backend + database | Browser storage (localStorage) | One device is enough for the pitch; no server, no cost |
 | Mobile (later phase) | Responsive web / PWA (installable web app) / native (iOS, Android) / cross-platform (React Native, Flutter) | Responsive web first, PWA next | One codebase. Go native only if we need things the web can't do well, or app-store presence |
 | Hosting for the prototype | GitHub Pages / other free hosts | GitHub Pages | Free, already where the code is |
 
 ## 6. Risks
 - **One-day timeline for a working app.** The biggest risk. Fix: six screens only, no extra
-  features, simplest data storage that works for the pitch (question 2), polish after the pitch.
+  features, data saved in the browser (no server), polish after the pitch.
+- **Browser storage limits.** Data lives on one device and one browser; clearing the browser
+  erases it, and two people can't see each other's bookings. Fine for the pitch; a shared
+  backend is phase 5.
 - **Name-only sign-in.** Anyone can type any name, including an admin's. Acceptable for a
   prototype with fake data, not for real use. Already in the spec's open questions.
 - **Scope grows** ("one more feature"). Fix: the spec's "anything not listed is out" rule.
@@ -78,10 +82,9 @@ first come first served, release after 2 hours without check-in, no-show count.
 ## 7. Open questions for the plan (answer one at a time)
 The product questions (booking window, bicycles, EV rules, no-shows, sign-in) are in `Spec.md`.
 1. Is monitoring the app with Dynatrace a goal of the workshop (phase 7), or only the name?
-2. For the pitch, must reservations be shared across devices (needs a backend and database), or is
-   one device enough (data saved in the browser, no server)?
-3. Who owns the spec decisions (PM role)?
-4. Roughly how many hours a week can each of us spend?
+2. Who owns the spec decisions (PM role)?
+3. Roughly how many hours a week can each of us spend?
 
 Answered: app type is corporate parking (one shared garage, shared pool, first come first served);
-the first release is for both drivers and admins; "launch today" means a working app to pitch today.
+the first release is for both drivers and admins; "launch today" means a working app to pitch today;
+for the pitch one device is enough, so data is saved in the browser and there is no server.

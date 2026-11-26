@@ -31,7 +31,9 @@ Drivers can view their own reservations and cancel one. A cancelled reservation 
 
 Refreshing or accessing the app after reservation should persist the reservation, and other users will see that spot as BOOKED and unavailable to reserve.
 
-Drivers can book any spot up to 7 calendar days ahead.
+Drivers can book any spot up to 7 calendar days ahead. Calendar should show all calendar days, not just business days (Sunday through Sunday). 
+
+Allow a user to see spots in My Reservations, and release a spot if no longer needed. 
 
 ## No-show policy
 
